@@ -2,7 +2,7 @@
 
 **Status**: 進行中
 **Date**: 2026-11-10
-**Next Action**: Rust toolchain（rustup ＋ MSVC）導入の確認 → M1 worker（index/read/write/expand）＋ pytest
+**Next Action**: Tauri scaffold（npm create tauri-app）＋ worker.py 実装（M1）→ pytest
 
 ## 意図 / 背景
 
@@ -21,7 +21,10 @@
 - `.venv`（Python 3.10.8）＋ pip 結果: dynamicprompts 0.34.1 / pyparsing 3.3.3 / Jinja2 3.1.6 / MarkupSafe 3.0.4。PyYAML 未インストール（決定どおり）。
 - cp932 fixture 生成: 33 bytes（`docs/ai/tmp/make_cp932_fixture.py`）。
 - push 成功: `* [new branch] HEAD -> main`、tracking 設定済み。
-- 未実行: pytest（コード未実装）。未導入: rustup / cargo / cl.exe（Tauri ビルドに必要・導入は要確認）。
+- 未実行: pytest（コード未実装）。
+- Rust toolchain（導入済み）: rustup 1.29.3 ＋ `stable-x86_64-pc-windows-msvc`（cargo 1.99.1）。
+- **Visual Studio は既存**（vswhere: `C:\Program Files\Microsoft Visual Studio\18\Community`、VS2019 Community の MSVC 14.29.30133、`Windows Kits\10`）→ 二重インストールなし。
+- 疎通確認: `$env:TEMP\kilo\linkcheck` で `cargo build` 成功（link.exe と SDK が使えることを確認）。
 
 ## 完了時 Memory Bank 操作
 

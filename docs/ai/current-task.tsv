@@ -1,2 +1,2 @@
 task_file	status	next_action
-docs/ai/tasks/2026-11-10-prompt-editor-prep.md	進行中	Rust toolchain（rustup ＋ MSVC）導入の確認 → M1 worker（index/read/write/expand）＋ pytest
+docs/ai/tasks/2026-11-10-prompt-editor-prep.md	進行中	Tauri scaffold（npm create tauri-app）＋ worker.py 実装（M1）→ pytest
