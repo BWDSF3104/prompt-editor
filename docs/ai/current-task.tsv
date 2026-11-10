@@ -1,2 +1,2 @@
 task_file	status	next_action
-docs/ai/tasks/2026-11-10-m2-m4-frontend.md	進行中	exe 側実機スモーク: native menu 描画・accelerator 実効・OS dialog・write（手動 5 件と併せて）
+docs/ai/tasks/2026-11-10-m2-m4-frontend.md	進行中	theme 実測（{red|blue} __colors__ 入力→span 色確認→ui-theme-20261110.png）→ Drive コピー＋txt → close/残存 0/ゴミ箱 → vite 再起動不要（停止済み確認）→ commit → exe 再ビルド → SAKURA 参考提案リスト提示
