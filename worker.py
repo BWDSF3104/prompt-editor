@@ -8,6 +8,7 @@ from dynamicprompts.generators import RandomPromptGenerator, CombinatorialPrompt
 
 REF = re.compile(r"__([A-Za-z0-9_]+)__")
 KINDS = {"txt", "csv", "json", "yaml"}
+LORA_SUFFIXES = {".safetensors", ".pt"}
 
 
 def detect_encoding(data: bytes) -> str:
@@ -60,6 +61,8 @@ def handle(req: dict) -> dict:
             return None
         cycle = next((c for n in edges if n not in seen and (c := dfs(n, [n]))), None)
         return {"edges": edges, "cycle": cycle}
+    if cmd == "list_loras":
+        return {"loras": sorted(p.name for p in root.rglob("*") if p.is_file() and p.suffix in LORA_SUFFIXES)}
     if cmd == "read":
         data = (root / req["file"]).read_bytes()
         enc = detect_encoding(data)

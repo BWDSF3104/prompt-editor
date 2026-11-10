@@ -32,6 +32,12 @@ def test_cycle_detection():
     assert cycle and set(cycle) == {"cycle_a", "cycle_b"}
 
 
+def test_list_loras(tmp_path):
+    for name in ("b.safetensors", "a.safetensors", "notes.txt"):
+        (tmp_path / name).write_text("")
+    assert worker.handle({"command": "list_loras", "root": str(tmp_path)})["loras"] == ["a.safetensors", "b.safetensors"]
+
+
 def test_read_cp932_roundtrip(tmp_path):
     r = worker.handle({"command": "read", "root": str(FIXTURES), "file": "cp932.prompt"})
     assert r["encoding"] == "cp932"

@@ -8,14 +8,10 @@ import { cache, matchNames } from "./wildcards.ts";
 import { callEngine } from "./bridge.ts";
 
 // 0.57 public d.ts に semanticTokenColors なし → rules（custom token name は tokenTypeMap 経由でマッチ）
-monaco.editor.defineTheme("dp", { base: "vs", inherit: true, rules: [
-  { token: "variant", foreground: "0A66C2" },
-  { token: "separator", foreground: "A12626" },
-  { token: "weight", foreground: "2F7F4F" },
-  { token: "wildcard", foreground: "7C4DFF" },
-  { token: "comment", foreground: "6A737D" },
-  { token: "lora", foreground: "B3582F" },
-], colors: {} });
+// 色は WCAG 4.5:1 を docs/ai/tmp/contrast.py で実測済み（light は白背景・dark は vs-dark 背景）
+const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+const COLORS: [string, string, string][] = [["variant", "0A66C2", "5B9BD5"], ["separator", "A12626", "E36363"], ["weight", "2F7F4F", "7CC89B"], ["wildcard", "7C4DFF", "A388FF"], ["comment", "6A737D", "A0A8B0"], ["lora", "B3582F", "E08B5A"]];
+monaco.editor.defineTheme("dp", { base: dark ? "vs-dark" : "vs", inherit: true, rules: COLORS.map(([t, l, d]) => ({ token: t, foreground: dark ? d : l })), colors: {} });
 monaco.editor.setTheme("dp");
 
 monaco.languages.register({ id: "dynamicprompt" });
@@ -77,7 +73,7 @@ editor.onDidChangeModelContent(() => {
 
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 // 設定は localStorage に保存（WebView2 で起動またぎ永続）
-for (const k of ["root", "seed", "count", "generator", "python"]) {
+for (const k of ["root", "seed", "count", "generator", "python", "lora"]) {
   const saved = localStorage.getItem("settings:" + k);
   if (saved) $(k).value = saved;
   $(k).addEventListener("change", () => localStorage.setItem("settings:" + k, $(k).value));
@@ -88,12 +84,19 @@ const settings = {
   count: () => Number($("count").value),
   generator: () => $("generator").value,
   python: () => $("python").value,
+  lora: () => $("lora").value,
 };
 const status = document.getElementById("status")!;
 const filelist = document.getElementById("filelist")!;
 const results = document.getElementById("results")!;
 let currentPath = "";
 let currentEncoding = "";
+
+const insert = (text: string) => {
+  const m = editor.getModel();
+  const sel = editor.getSelection();
+  if (m && sel) m.applyEdits([{ range: sel, text, forceMoveMarkers: true }]);
+};
 
 async function call(req: object) {
   const resp = await callEngine(req, settings.python());
@@ -109,13 +112,49 @@ async function refresh() {
   for (const c of cache.collections) {
     const li = document.createElement("li");
     li.textContent = `${c.name} (${c.count})`;
-    li.onclick = () => { // SAKURA 系: 項目クリック＝カーソル位置へ挿入（開く is double-click）
-      const m = editor.getModel();
-      const sel = editor.getSelection();
-      if (m && sel) m.applyEdits([{ range: sel, text: `__${c.name}__`, forceMoveMarkers: true }]);
-    };
+    li.onclick = () => insert(`__${c.name}__`); // SAKURA 系: 項目クリック＝カーソル位置へ挿入（開く is double-click）
     li.ondblclick = () => openFile(settings.root() ? settings.root() + "/" + c.path : c.path);
     filelist.appendChild(li);
+  }
+  await renderLoras();
+}
+
+async function renderLoras() {
+  const ul = document.getElementById("loralist")!;
+  ul.innerHTML = "";
+  if (!settings.lora()) return;
+  const resp = await call({ command: "list_loras", root: settings.lora() });
+  if (resp.error) return;
+  for (const n of resp.loras as string[]) {
+    const li = document.createElement("li");
+    li.textContent = n;
+    li.onclick = () => insert(`<lora:${n}>`);
+    ul.appendChild(li);
+  }
+}
+
+// shortcut: localStorage presets max 20（管理 UI なし・同名上書き。一覧が必要になったら task_manager 側へ移す）
+const presets = JSON.parse(localStorage.getItem("presets") || "{}");
+function renderPresets() {
+  const ul = document.getElementById("presets")!;
+  ul.innerHTML = "";
+  for (const [name, text] of Object.entries(presets)) {
+    const li = document.createElement("li");
+    li.textContent = name;
+    li.onclick = () => insert(String(text));
+    ul.appendChild(li);
+  }
+}
+
+const history: string[] = [];
+function renderHistory() {
+  const ul = document.getElementById("history")!;
+  ul.innerHTML = "";
+  for (const r of history) {
+    const li = document.createElement("li");
+    li.textContent = r;
+    li.onclick = () => insert(r);
+    ul.appendChild(li);
   }
 }
 
@@ -208,6 +247,9 @@ const handlers: Record<string, () => void> = {
     const resp = await call({ command: "expand", root: settings.root(), prompt: editor.getValue(), seed: settings.seed(), count: settings.count(), generator: settings.generator() });
     if (resp.error) return;
     results.textContent = (resp.results as string[]).join("\n");
+    history.unshift(...(resp.results as string[]));
+    history.length = Math.min(history.length, 10); // shortcut: 履歴 max 10（保持期間・ファイル保存なし）
+    renderHistory();
   },
   copy: async () => {
     try {
@@ -220,10 +262,20 @@ const handlers: Record<string, () => void> = {
 };
 
 $("pick").onclick = () => handlers.pick();
+$("savepreset").onclick = () => {
+  const name = $("presetname").value.trim();
+  if (!name || (Object.keys(presets).length >= 20 && !(name in presets))) return;
+  presets[name] = editor.getValue();
+  localStorage.setItem("presets", JSON.stringify(presets));
+  renderPresets();
+};
 document.getElementById("close-settings")!.onclick = () => (document.getElementById("settingspanel") as HTMLDialogElement).close();
 // 起動: 保存済み recent を native menu に再投入（Rust menu rebuild）＋ root 保存済みなら自動索引
 JSON.parse(localStorage.getItem("recent") || "[]").forEach((p: string) => invoke("push_recent", { path: p }).catch(() => {}));
 if (settings.root()) refresh();
+else renderLoras();
+renderPresets();
+renderHistory();
 // native menu event → handler。未知 id は最近使ったファイルの path（submenu id = path）とみなして開く
 const dispatch = (id: string) => handlers[id] ? handlers[id]() : openFile(id);
 listen("menu", (e) => dispatch(String(e.payload))).catch(() => {});

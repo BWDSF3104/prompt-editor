@@ -19,6 +19,8 @@
       <select id="generator"><option value="random">random</option><option value="combinatorial">combinatorial</option></select>
       <label for="python">pythonPath（空=自動）</label>
       <input id="python" />
+      <label for="lora">LoRA フォルダ</label>
+      <input id="lora" />
       <button id="close-settings" type="button">閉じる</button>
     </div>
   </dialog>
@@ -26,6 +28,14 @@
     <div id="filelist-col">
       <h2>ファイル（wildcards）</h2>
       <ul id="filelist"></ul>
+      <h2>LoRA</h2>
+      <ul id="loralist"></ul>
+      <h2>プリセット</h2>
+      <div id="presetrow">
+        <input id="presetname" aria-label="プリセット名" />
+        <button id="savepreset" type="button">保存</button>
+      </div>
+      <ul id="presets"></ul>
     </div>
     <div id="editor-col">
       <div id="tabs" role="tablist" aria-label="開いているファイル"></div>
@@ -34,6 +44,8 @@
   </div>
   <p id="status" role="status"></p>
   <pre id="results"></pre>
+  <h2>展開履歴</h2>
+  <ul id="history"></ul>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
