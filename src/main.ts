@@ -49,6 +49,7 @@ const editor = monaco.editor.create(document.getElementById("editor")!, {
   value: "",
   language: "dynamicprompt",
   automaticLayout: true, // window size 追従
+  wordWrap: "on",
   'semanticHighlighting.enabled': true, // shortcut: theme 既定 false（StandaloneTheme.semanticHighlighting）、editor option で上書き
 });
 
@@ -222,6 +223,16 @@ async function openFile(full: string) {
   activate(full);
 }
 
+// 参照...（Windows 標準 dialog・directory はフォルダ、false はファイル）
+const browse = async (id: string, directory: boolean) => {
+  const f = await open({ directory });
+  if (!f) return;
+  $(id).value = f as string;
+  $(id).dispatchEvent(new Event("change")); // localStorage 保存
+  if (id === "root") refresh();
+  if (id === "lora") renderLoras();
+};
+
 const handlers: Record<string, () => void> = {
   open: async () => {
     const f = await open({ multiple: false });
@@ -235,14 +246,7 @@ const handlers: Record<string, () => void> = {
   settings: () => {
     (document.getElementById("settingspanel") as HTMLDialogElement).showModal();
   },
-  pick: async () => {
-    const d = await open({ directory: true });
-    if (d) {
-      $("root").value = d as string;
-      $("root").dispatchEvent(new Event("change")); // localStorage 保存
-      refresh();
-    }
-  },
+  pick: () => browse("root", true),
   run: async () => {
     const resp = await call({ command: "expand", root: settings.root(), prompt: editor.getValue(), seed: settings.seed(), count: settings.count(), generator: settings.generator() });
     if (resp.error) return;
@@ -262,6 +266,8 @@ const handlers: Record<string, () => void> = {
 };
 
 $("pick").onclick = () => handlers.pick();
+$("picklora").onclick = () => browse("lora", true);
+$("pickpython").onclick = () => browse("python", false);
 $("savepreset").onclick = () => {
   const name = $("presetname").value.trim();
   if (!name || (Object.keys(presets).length >= 20 && !(name in presets))) return;

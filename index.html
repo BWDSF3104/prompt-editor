@@ -10,7 +10,7 @@
     <div id="settingsgrid">
       <label for="root">wildcards フォルダ</label>
       <input id="root" />
-      <button id="pick" type="button" title="フォルダ選択">フォルダ選択</button>
+      <button id="pick" type="button">参照...</button>
       <label for="seed">seed</label>
       <input id="seed" type="number" value="999" min="0" />
       <label for="count">count</label>
@@ -19,8 +19,10 @@
       <select id="generator"><option value="random">random</option><option value="combinatorial">combinatorial</option></select>
       <label for="python">pythonPath（空=自動）</label>
       <input id="python" />
+      <button id="pickpython" type="button">参照...</button>
       <label for="lora">LoRA フォルダ</label>
       <input id="lora" />
+      <button id="picklora" type="button">参照...</button>
       <button id="close-settings" type="button">閉じる</button>
     </div>
   </dialog>
