@@ -14,6 +14,7 @@ runtime/
 # 実データは commit しない（public repo）
 data/
 scratch/
+docs/ai/tmp/
 *.prompt.local
 
 # fixture（合成データのみ）は残す
