@@ -1,1 +1,2 @@
 task_file	status	next_action
+docs/ai/tasks/2026-11-10-m2-m4-frontend.md	進行中	手動スモーク 5 件（npm run tauri dev）→ 完了判定

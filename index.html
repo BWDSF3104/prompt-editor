@@ -1,43 +1,29 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
-    <script type="module" src="/src/main.ts" defer></script>
-  </head>
-
-  <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
-
-      <div class="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/src/assets/vite.svg" class="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img
-            src="/src/assets/tauri.svg"
-            class="logo tauri"
-            alt="Tauri logo"
-          />
-        </a>
-        <a href="https://www.typescriptlang.org/docs" target="_blank">
-          <img
-            src="/src/assets/typescript.svg"
-            class="logo typescript"
-            alt="typescript logo"
-          />
-        </a>
-      </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
-
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
-    </main>
-  </body>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Prompt Editor</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <div id="bar">
+    <input id="root" placeholder="wildcard root" size="24" />
+    <button id="pick">folder</button>
+    <input id="seed" type="number" value="999" title="seed" />
+    <input id="count" type="number" value="8" title="count" />
+    <select id="generator"><option>random</option><option>combinatorial</option></select>
+    <input id="python" placeholder="pythonPath (blank=auto)" size="16" />
+    <button id="refresh">index</button>
+  </div>
+  <ul id="filelist"></ul>
+  <div id="editor"></div>
+  <div id="status"></div>
+  <div id="actions">
+    <button id="save">save</button>
+    <button id="run">expand</button>
+    <button id="copy">copy</button>
+  </div>
+  <pre id="results"></pre>
+  <script type="module" src="/src/main.ts"></script>
+</body>
 </html>
