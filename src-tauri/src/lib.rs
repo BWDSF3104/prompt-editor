@@ -82,14 +82,15 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![engine])
         .setup(|app| {
-            let open = MenuItem::with_id(app, "open", "ファイルを開く…", true, None::<&str>)?;
-            let save = MenuItem::with_id(app, "save", "保存（判定 encoding まま）", true, None::<&str>)?;
-            let index = MenuItem::with_id(app, "index", "索引を作る", true, None::<&str>)?;
+            // accelerator = 一般ショートカット（menu click と同一 handler が走る）
+            let open = MenuItem::with_id(app, "open", "ファイルを開く…", true, Some("Ctrl+O"))?;
+            let save = MenuItem::with_id(app, "save", "保存", true, Some("Ctrl+S"))?; // 挙動は R6（判定 encoding まま）
+            let index = MenuItem::with_id(app, "index", "索引を作る", true, Some("Ctrl+Shift+I"))?;
             let file = Submenu::with_items(app, "ファイル", true, &[&open, &save, &index])?;
-            let settings_item = MenuItem::with_id(app, "settings", "設定を開く", true, None::<&str>)?;
+            let settings_item = MenuItem::with_id(app, "settings", "設定を開く", true, Some("Ctrl+,"))?;
             let settings = Submenu::with_items(app, "設定", true, &[&settings_item])?;
-            let run_item = MenuItem::with_id(app, "run", "展開", true, None::<&str>)?;
-            let copy_item = MenuItem::with_id(app, "copy", "結果をコピー", true, None::<&str>)?;
+            let run_item = MenuItem::with_id(app, "run", "展開", true, Some("F5"))?;
+            let copy_item = MenuItem::with_id(app, "copy", "結果をコピー", true, Some("Ctrl+Shift+C"))?;
             let tools = Submenu::with_items(app, "ツール", true, &[&run_item, &copy_item])?;
             app.set_menu(Menu::with_items(app, &[&file, &settings, &tools])?)?;
             Ok(())

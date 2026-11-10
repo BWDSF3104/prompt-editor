@@ -122,14 +122,29 @@ const handlers: Record<string, () => void> = {
   settings: () => {
     document.getElementById("settingspanel")!.hidden = false;
   },
+  pick: async () => {
+    const d = await open({ directory: true });
+    if (d) {
+      $("root").value = d as string;
+      refresh();
+    }
+  },
   run: async () => {
     const resp = await call({ command: "expand", root: settings.root(), prompt: editor.getValue(), seed: settings.seed(), count: settings.count(), generator: settings.generator() });
     if (resp.error) return;
     results.textContent = (resp.results as string[]).join("\n");
   },
-  copy: () => navigator.clipboard.writeText(results.textContent),
+  copy: async () => {
+    try {
+      await navigator.clipboard.writeText(results.textContent);
+      status.textContent = "copied";
+    } catch (e) {
+      status.textContent = String(e);
+    }
+  },
 };
 
+$("pick").onclick = () => handlers.pick();
 // native menu event → handler（browser 確認では window.handleMenu で呼ぶ）
 listen("menu", (e) => handlers[String(e.payload)]?.()).catch(() => {});
 (window as unknown as Record<string, unknown>).handleMenu = (id: string) => handlers[id]?.();
