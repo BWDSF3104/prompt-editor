@@ -1,4 +1,11 @@
-import * as monaco from "monaco-editor";
+// 消費メモリ: core のみ import（full monaco-editor は languages 81 件 + contributions 59 件を登録）。
+// shortcut: 使っている feature だけ登録。Ctrl+F・bracket matching 等が必要になったら contrib/*/browser 入口を 1 行追加。
+import * as monaco from "monaco-editor/editor";
+import "monaco-editor/editor/contrib/folding/browser/folding.js";
+import "monaco-editor/editor/contrib/semanticTokens/browser/documentSemanticTokens.js";
+import "monaco-editor/editor/contrib/semanticTokens/browser/viewportSemanticTokens.js";
+import "monaco-editor/editor/contrib/suggest/browser/suggestController.js";
+import "monaco-editor/editor/contrib/find/browser/findController.js";
 import { open } from "@tauri-apps/plugin-dialog";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
@@ -189,6 +196,7 @@ function renderTabs() {
         status.textContent = "";
       }
       renderTabs();
+      persistOpen();
     };
     wrap.append(b, x);
     tabs.appendChild(wrap);
@@ -202,6 +210,12 @@ function activate(path: string) {
   editor.setModel(f.model);
   status.textContent = `encoding: ${f.encoding}`; // R6: 判定値を status に表示
   renderTabs();
+  persistOpen();
+}
+
+// shortcut: disk 再現（未保存変更は復元しない・localStorage は path のみ）。内容保全が必要なら task_manager 側で決める
+function persistOpen() {
+  localStorage.setItem("open", JSON.stringify({ active: currentPath, paths: [...files.keys()] }));
 }
 
 function rememberRecent(p: string) {
@@ -282,6 +296,12 @@ if (settings.root()) refresh();
 else renderLoras();
 renderPresets();
 renderHistory();
+// 起動復元: 前回開いていたファイルを disk から再開（openFile は recent にも反映）
+(async () => {
+  const restored = JSON.parse(localStorage.getItem("open") || "null");
+  for (const p of ((restored?.paths as string[]) ?? [])) await openFile(p);
+  if (restored?.active && files.has(restored.active)) activate(restored.active);
+})();
 // native menu event → handler。未知 id は最近使ったファイルの path（submenu id = path）とみなして開く
 const dispatch = (id: string) => handlers[id] ? handlers[id]() : openFile(id);
 listen("menu", (e) => dispatch(String(e.payload))).catch(() => {});

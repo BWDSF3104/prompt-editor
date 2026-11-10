@@ -1,2 +1,2 @@
 task_file	status	next_action
-docs/ai/tasks/2026-11-10-m2-m4-frontend.md	進行中	exe 実機スモーク 5 件（色描画・native menu・accelerator・OS dialog・write）→ 完了判定
+docs/ai/tasks/2026-11-10-m2-m4-frontend.md	進行中	exe 実機スモーク 5 件（色描画・native menu・accelerator・OS dialog・write）＋ファイル復元の exe 実機確認 → 完了判定
