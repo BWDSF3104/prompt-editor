@@ -1,0 +1,20 @@
+# Python 開発環境
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Node / Tauri
+node_modules/
+dist/
+src-tauri/target/
+
+# 実行時 runtime（ビルド時に組立）
+runtime/
+
+# 実データは commit しない（public repo）
+data/
+scratch/
+*.prompt.local
+
+# fixture（合成データのみ）は残す
+!tests/fixtures/

@@ -1,0 +1,7 @@
+{
+  # section A
+  outer{inner|{2$$x|y|z}}{0.5::w}{|}
+  |
+  # section B
+  {__colors__}{0::off}\(paren\) <lora:Test:1>
+}
