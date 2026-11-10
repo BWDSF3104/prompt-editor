@@ -1,0 +1,2 @@
+# fixture のバイト列を保持（cp932 fixture が CRLF 変換されないようにする）
+tests/fixtures/** -text
