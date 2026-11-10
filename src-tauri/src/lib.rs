@@ -3,6 +3,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 
+use tauri::Emitter;
+use tauri::menu::{Menu, MenuItem, Submenu};
+
 struct Engine {
     key: String,
     child: Child,
@@ -47,12 +50,14 @@ fn engine(request: String, python: String, worker: String) -> Result<String, Str
             let _ = old.child.kill();
         }
         // 初回 engine 呼び出しで spawn・reuse・アプリ終了で kill（常駐サーバー・ソケット不要）
-        let mut child = Command::new(&py)
-            .arg(&wk)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()
-            .map_err(|e| format!("engine spawn failed: {e}"))?;
+        let mut cmd = Command::new(&py);
+        cmd.arg(&wk).stdin(Stdio::piped()).stdout(Stdio::piped());
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW: Python の console 窓を見せない
+        }
+        let mut child = cmd.spawn().map_err(|e| format!("engine spawn failed: {e}"))?;
         let reader = BufReader::new(child.stdout.take().ok_or("no stdout")?);
         *guard = Some(Engine { key, child, reader });
     }
@@ -76,6 +81,22 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![engine])
+        .setup(|app| {
+            let open = MenuItem::with_id(app, "open", "ファイルを開く…", true, None::<&str>)?;
+            let save = MenuItem::with_id(app, "save", "保存（判定 encoding まま）", true, None::<&str>)?;
+            let index = MenuItem::with_id(app, "index", "索引を作る", true, None::<&str>)?;
+            let file = Submenu::with_items(app, "ファイル", true, &[&open, &save, &index])?;
+            let settings_item = MenuItem::with_id(app, "settings", "設定を開く", true, None::<&str>)?;
+            let settings = Submenu::with_items(app, "設定", true, &[&settings_item])?;
+            let run_item = MenuItem::with_id(app, "run", "展開", true, None::<&str>)?;
+            let copy_item = MenuItem::with_id(app, "copy", "結果をコピー", true, None::<&str>)?;
+            let tools = Submenu::with_items(app, "ツール", true, &[&run_item, &copy_item])?;
+            app.set_menu(Menu::with_items(app, &[&file, &settings, &tools])?)?;
+            Ok(())
+        })
+        .on_menu_event(|app, event| {
+            let _ = app.emit("menu", event.id().as_ref().to_string());
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

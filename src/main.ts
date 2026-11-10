@@ -1,5 +1,6 @@
 import * as monaco from "monaco-editor";
 import { open } from "@tauri-apps/plugin-dialog";
+import { listen } from "@tauri-apps/api/event";
 import { TOKEN_TYPES, tokenize } from "./tokenizer.ts"; // 決定: R1 は semantic tokens（Monarch 非採用）
 import { foldingRanges, markers } from "./providers.ts";
 import { cache, matchNames } from "./wildcards.ts";
@@ -41,7 +42,11 @@ monaco.languages.registerCompletionItemProvider("dynamicprompt", {
   },
 });
 
-const editor = monaco.editor.create(document.getElementById("editor")!, { value: "", language: "dynamicprompt" });
+const editor = monaco.editor.create(document.getElementById("editor")!, {
+  value: "",
+  language: "dynamicprompt",
+  automaticLayout: true, // window size 追従
+});
 
 // keystroke ごとに full re-tokenize しない（debounce 250ms・1-pass）
 let timer: number | undefined;
@@ -104,32 +109,27 @@ async function openFile(full: string) {
   editor.setValue(String(resp.text));
 }
 
-const toggleMenu = (btnId: string, panelId: string) => {
-  const panel = document.getElementById(panelId)!;
-  panel.hidden = !panel.hidden;
-  document.getElementById(btnId)!.setAttribute("aria-expanded", String(!panel.hidden));
+const handlers: Record<string, () => void> = {
+  open: async () => {
+    const f = await open({ multiple: false });
+    if (f) openFile(f as string);
+  },
+  save: async () => {
+    if (!currentPath) return;
+    await call({ command: "write", path: currentPath, encoding: currentEncoding, text: editor.getValue() });
+  },
+  index: () => refresh(),
+  settings: () => {
+    document.getElementById("settingspanel")!.hidden = false;
+  },
+  run: async () => {
+    const resp = await call({ command: "expand", root: settings.root(), prompt: editor.getValue(), seed: settings.seed(), count: settings.count(), generator: settings.generator() });
+    if (resp.error) return;
+    results.textContent = (resp.results as string[]).join("\n");
+  },
+  copy: () => navigator.clipboard.writeText(results.textContent),
 };
-$("menu-file").onclick = () => toggleMenu("menu-file", "filemenu");
-$("menu-settings").onclick = () => toggleMenu("menu-settings", "settingspanel");
-$("open").onclick = async () => {
-  const f = await open({ multiple: false });
-  if (f) openFile(f as string);
-};
-$("refresh").onclick = refresh;
-$("pick").onclick = async () => {
-  const dir = await open({ directory: true });
-  if (dir) {
-    $("root").value = dir as string;
-    refresh();
-  }
-};
-$("save").onclick = async () => {
-  if (!currentPath) return;
-  await call({ command: "write", path: currentPath, encoding: currentEncoding, text: editor.getValue() });
-};
-$("run").onclick = async () => {
-  const resp = await call({ command: "expand", root: settings.root(), prompt: editor.getValue(), seed: settings.seed(), count: settings.count(), generator: settings.generator() });
-  if (resp.error) return;
-  results.textContent = (resp.results as string[]).join("\n");
-};
-$("copy").onclick = () => navigator.clipboard.writeText(results.textContent);
+
+// native menu event → handler（browser 確認では window.handleMenu で呼ぶ）
+listen("menu", (e) => handlers[String(e.payload)]?.()).catch(() => {});
+(window as unknown as Record<string, unknown>).handleMenu = (id: string) => handlers[id]?.();
