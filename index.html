@@ -7,26 +7,28 @@
 </head>
 <body>
   <h1>Prompt Editor</h1>
-  <div id="settings">
-    <div class="row">
+  <nav id="menubar">
+    <button id="menu-file" aria-haspopup="true" aria-expanded="false">ファイル</button>
+    <div id="filemenu" class="menu" hidden>
+      <button id="open" type="button" title="任意のファイルを開く（判定 encoding 表示）">ファイルを開く…</button>
+      <button id="save" type="button" title="判定した encoding のまま保存（変換なし）">保存（判定 encoding まま）</button>
+      <button id="refresh" type="button" title="wildcardRoot の索引を作り file list に出す">索引を作る</button>
+    </div>
+    <button id="menu-settings" aria-haspopup="true" aria-expanded="false">設定</button>
+    <div id="settingspanel" class="menu" hidden>
       <label for="root">wildcards フォルダ</label>
       <input id="root" />
       <button id="pick" type="button" title="フォルダ選択">フォルダ選択</button>
-      <button id="refresh" type="button" title="索引を作り file list に出す">索引を作る</button>
-    </div>
-    <div class="row">
       <label for="seed">seed（固定で同一展開）</label>
       <input id="seed" type="number" value="999" min="0" />
       <label for="count">count（展開件数）</label>
       <input id="count" type="number" value="8" min="1" />
       <label for="generator">generator</label>
       <select id="generator"><option value="random">random（既定）</option><option value="combinatorial">combinatorial</option></select>
-    </div>
-    <div class="row">
       <label for="python">pythonPath（空なら自動）</label>
       <input id="python" />
     </div>
-  </div>
+  </nav>
   <div id="main">
     <section>
       <h2>ファイル（wildcards）</h2>
@@ -39,7 +41,6 @@
   </div>
   <p id="status" role="status">status: encoding 判定値がここに出ます</p>
   <div id="actions">
-    <button id="save" type="button" title="判定した encoding のまま保存（変換なし）">保存（判定 encoding まま）</button>
     <button id="run" type="button" title="現在のエディタ内容を展開">展開</button>
     <button id="copy" type="button" title="結果欄をクリップボードへ">結果をコピー</button>
   </div>

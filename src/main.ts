@@ -73,7 +73,7 @@ const settings = {
 const status = document.getElementById("status")!;
 const filelist = document.getElementById("filelist")!;
 const results = document.getElementById("results")!;
-let currentFile = "";
+let currentPath = "";
 let currentEncoding = "";
 
 async function call(req: object) {
@@ -90,20 +90,31 @@ async function refresh() {
   for (const c of cache.collections) {
     const li = document.createElement("li");
     li.textContent = `${c.name} (${c.count})`;
-    li.onclick = () => openFile(c.path);
+    li.onclick = () => openFile(settings.root() ? settings.root() + "/" + c.path : c.path);
     filelist.appendChild(li);
   }
 }
 
-async function openFile(path: string) {
-  const resp = await call({ command: "read", root: settings.root(), file: path });
+async function openFile(full: string) {
+  const resp = await call({ command: "read", root: "", file: full });
   if (resp.error) return;
-  currentFile = path;
+  currentPath = full;
   currentEncoding = String(resp.encoding);
   status.textContent = `encoding: ${currentEncoding}`; // R6: 判定値を status に表示
   editor.setValue(String(resp.text));
 }
 
+const toggleMenu = (btnId: string, panelId: string) => {
+  const panel = document.getElementById(panelId)!;
+  panel.hidden = !panel.hidden;
+  document.getElementById(btnId)!.setAttribute("aria-expanded", String(!panel.hidden));
+};
+$("menu-file").onclick = () => toggleMenu("menu-file", "filemenu");
+$("menu-settings").onclick = () => toggleMenu("menu-settings", "settingspanel");
+$("open").onclick = async () => {
+  const f = await open({ multiple: false });
+  if (f) openFile(f as string);
+};
 $("refresh").onclick = refresh;
 $("pick").onclick = async () => {
   const dir = await open({ directory: true });
@@ -113,8 +124,8 @@ $("pick").onclick = async () => {
   }
 };
 $("save").onclick = async () => {
-  if (!currentFile) return;
-  await call({ command: "write", path: settings.root() + "/" + currentFile, encoding: currentEncoding, text: editor.getValue() });
+  if (!currentPath) return;
+  await call({ command: "write", path: currentPath, encoding: currentEncoding, text: editor.getValue() });
 };
 $("run").onclick = async () => {
   const resp = await call({ command: "expand", root: settings.root(), prompt: editor.getValue(), seed: settings.seed(), count: settings.count(), generator: settings.generator() });

@@ -2,11 +2,12 @@
 body { font-family: "Segoe UI", "Noto Sans JP", system-ui, sans-serif; margin: 12px; display: grid; gap: 10px; }
 h1 { font-size: 18px; margin: 0; }
 h2 { font-size: 14px; margin: 0 0 6px; color: #333; }
-#settings { display: grid; gap: 8px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
-#settings .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-#settings label { font-size: 13px; color: #333; }
-#settings input, #settings select { font-size: 13px; padding: 4px 6px; min-width: 0; flex: 1 1 140px; }
-#settings input[type="number"] { flex: 0 0 90px; width: 90px; }
+#menubar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.menu { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+.menu label { font-size: 13px; color: #333; }
+.menu input, .menu select { font-size: 13px; padding: 4px 6px; min-width: 0; flex: 1 1 140px; }
+.menu input[type="number"] { flex: 0 0 90px; width: 90px; }
+#menubar > button[aria-haspopup] { font-weight: 600; }
 #main { display: grid; grid-template-columns: minmax(160px, 220px) 1fr; gap: 10px; }
 #main section { min-width: 0; }
 #filelist { margin: 0; padding-left: 20px; max-height: 36vh; overflow: auto; font-size: 13px; }
