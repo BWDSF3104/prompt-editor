@@ -1,2 +1,2 @@
 task_file	status	next_action
-docs/ai/tasks/2026-11-10-m2-m4-frontend.md	進行中	exe 実機スモーク 5 件（semantic token 色・native menu・accelerator・OS dialog・write）→ 完了判定。SAKURA 参考提案リストは 2026-11-11 回答で提示済み
+docs/ai/tasks/2026-11-10-m2-m4-frontend.md	進行中	exe 実機スモーク 5 件 ＋ SAKURA 残候補（LoRA 挿入・名前付き保存・展開履歴・dark theme）の実装指示待ち

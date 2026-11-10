@@ -109,7 +109,12 @@ async function refresh() {
   for (const c of cache.collections) {
     const li = document.createElement("li");
     li.textContent = `${c.name} (${c.count})`;
-    li.onclick = () => openFile(settings.root() ? settings.root() + "/" + c.path : c.path);
+    li.onclick = () => { // SAKURA 系: 項目クリック＝カーソル位置へ挿入（開く is double-click）
+      const m = editor.getModel();
+      const sel = editor.getSelection();
+      if (m && sel) m.applyEdits([{ range: sel, text: `__${c.name}__`, forceMoveMarkers: true }]);
+    };
+    li.ondblclick = () => openFile(settings.root() ? settings.root() + "/" + c.path : c.path);
     filelist.appendChild(li);
   }
 }
