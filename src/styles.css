@@ -1,6 +1,7 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body { font-family: "Segoe UI", "Noto Sans JP", system-ui, sans-serif; font-size: 12px; margin: 8px; display: flex; flex-direction: column; gap: 8px; }
+/* margin にすると height:100%＋16px で viewport 超過 → 外側 scrollbar。padding（border-box）で内側に収める */
+body { font-family: "Segoe UI", "Noto Sans JP", system-ui, sans-serif; font-size: 12px; margin: 0; padding: 8px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
 h2 { font-size: 12px; margin: 0 0 4px; color: #333; }
 #settingspanel { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 #settingspanel label { color: #333; }
@@ -9,7 +10,7 @@ h2 { font-size: 12px; margin: 0 0 4px; color: #333; }
 #settingspanel input[type="text"] { flex: 1 1 140px; }
 #settingspanel button { font-size: 12px; padding: 3px 8px; }
 #main { display: flex; flex: 1; min-height: 0; gap: 8px; }
-#filelist-col { width: 200px; min-width: 0; overflow: auto; }
+#filelist-col { width: 200px; min-width: 0; overflow: hidden auto; } /* 横向きバーを出さない（wrap 済みで不要） */
 #filelist { margin: 0; padding-left: 16px; }
 #filelist li { cursor: pointer; }
 #editor { flex: 1; min-width: 0; }

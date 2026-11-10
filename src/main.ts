@@ -1,6 +1,7 @@
 import * as monaco from "monaco-editor";
 import { open } from "@tauri-apps/plugin-dialog";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { TOKEN_TYPES, tokenize } from "./tokenizer.ts"; // 決定: R1 は semantic tokens（Monarch 非採用）
 import { foldingRanges, markers } from "./providers.ts";
 import { cache, matchNames } from "./wildcards.ts";
@@ -68,6 +69,12 @@ editor.onDidChangeModelContent(() => {
 });
 
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
+// 設定は localStorage に保存（WebView2 で起動またぎ永続）
+for (const k of ["root", "seed", "count", "generator", "python"]) {
+  const saved = localStorage.getItem("settings:" + k);
+  if (saved) $(k).value = saved;
+  $(k).addEventListener("change", () => localStorage.setItem("settings:" + k, $(k).value));
+}
 const settings = {
   root: () => $("root").value,
   seed: () => Number($("seed").value),
@@ -101,6 +108,7 @@ async function refresh() {
 }
 
 async function openFile(full: string) {
+  invoke("push_recent", { path: full }).catch(() => {}); // browser 確認（mock なし）では catch
   const resp = await call({ command: "read", root: "", file: full });
   if (resp.error) return;
   currentPath = full;
@@ -126,6 +134,7 @@ const handlers: Record<string, () => void> = {
     const d = await open({ directory: true });
     if (d) {
       $("root").value = d as string;
+      $("root").dispatchEvent(new Event("change")); // localStorage 保存
       refresh();
     }
   },
@@ -145,6 +154,7 @@ const handlers: Record<string, () => void> = {
 };
 
 $("pick").onclick = () => handlers.pick();
-// native menu event → handler（browser 確認では window.handleMenu で呼ぶ）
-listen("menu", (e) => handlers[String(e.payload)]?.()).catch(() => {});
-(window as unknown as Record<string, unknown>).handleMenu = (id: string) => handlers[id]?.();
+// native menu event → handler。未知 id は最近使ったファイルの path（submenu id = path）とみなして開く
+const dispatch = (id: string) => handlers[id] ? handlers[id]() : openFile(id);
+listen("menu", (e) => dispatch(String(e.payload))).catch(() => {});
+(window as unknown as Record<string, unknown>).handleMenu = dispatch;
