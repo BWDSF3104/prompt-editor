@@ -33,7 +33,7 @@ Dynamic Prompts 記法のプロンプトエディタ（Tauri + Monaco ＋ Embedd
 
 ## AI Memory Bank
 
-Memory Bank のファイル構成、更新タイミング、アーカイブルール、Recovery After Interruption は `docs/ai/memory-bank-guide.md` を参照。設計仕様は `docs/ai/reference/2026-11-10-dynamic-prompts-editor-design-spec.md`（正典は Common_Operations 側）。
+Memory Bank のファイル構成、更新タイミング、アーカイブルール、Recovery After Interruption は `docs/ai/memory-bank-guide.md` を参照。設計正典は本プロジェクトの `docs/ai/reference/2026-11-10-dynamic-prompts-editor-design-spec.md`（2026-11-10 委譲、決定記録は `docs/ai/decisions/`）。
 
 ## Workflows
 
