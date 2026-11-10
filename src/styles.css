@@ -1,6 +1,19 @@
-body { font-family: system-ui, sans-serif; margin: 8px; display: grid; grid-template-rows: auto auto 45vh auto auto auto; gap: 6px; }
-#bar, #actions { display: flex; gap: 6px; align-items: center; }
-#filelist { margin: 0; padding-left: 20px; max-height: 18vh; overflow: auto; }
-#editor { border: 1px solid #ccc; }
-#status { color: #666; }
-#results { margin: 0; max-height: 20vh; overflow: auto; background: #f6f6f6; padding: 6px; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", "Noto Sans JP", system-ui, sans-serif; margin: 12px; display: grid; gap: 10px; }
+h1 { font-size: 18px; margin: 0; }
+h2 { font-size: 14px; margin: 0 0 6px; color: #333; }
+#settings { display: grid; gap: 8px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+#settings .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#settings label { font-size: 13px; color: #333; }
+#settings input, #settings select { font-size: 13px; padding: 4px 6px; min-width: 0; flex: 1 1 140px; }
+#settings input[type="number"] { flex: 0 0 90px; width: 90px; }
+#main { display: grid; grid-template-columns: minmax(160px, 220px) 1fr; gap: 10px; }
+#main section { min-width: 0; }
+#filelist { margin: 0; padding-left: 20px; max-height: 36vh; overflow: auto; font-size: 13px; }
+#filelist li { cursor: pointer; }
+#editor { height: 32vh; min-height: 220px; border: 1px solid #ccc; border-radius: 6px; }
+#status { margin: 0; color: #444; font-size: 13px; }
+#actions { display: flex; flex-wrap: wrap; gap: 8px; }
+button { font-size: 13px; padding: 6px 12px; min-height: 32px; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #0a66c2; outline-offset: 1px; }
+#results { margin: 0; max-height: 24vh; overflow: auto; background: #f6f6f6; padding: 8px; border: 1px solid #ddd; border-radius: 6px; white-space: pre-wrap; word-break: break-word; }
