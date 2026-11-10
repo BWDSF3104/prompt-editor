@@ -2,7 +2,7 @@ import assert from "node:assert";
 import { readFileSync } from "node:fs";
 import { tokenize } from "../src/tokenizer.ts";
 import type { Token } from "../src/tokenizer.ts";
-import { foldingRanges, markers } from "../src/providers.ts";
+import { foldingRanges, markers, packedData } from "../src/providers.ts";
 import { cache, matchNames } from "../src/wildcards.ts";
 
 const text = readFileSync(new URL("./fixtures/nested.prompt", import.meta.url), "utf8");
@@ -28,6 +28,10 @@ assert.ok(folds.every(f => f.startLine < f.endLine));
 // markers: 完全破損のみ Error。空 option・{0::・$$・lora・エスケープ括弧は除外
 assert.deepEqual(markers(text), []);
 assert.equal(markers("{a|b").length, 1);
+
+// LSP packed encoding（monaco は delta 解读。absolute だと多 token でずれる）
+// `{`(d1) `|`(d1) `}`(d0) `__colors__`(d0) — text 通過。delta char は前 token start 基準
+assert.deepEqual(packedData("{red|blue} __colors__"), [0, 0, 1, 0, 1, 0, 4, 1, 1, 1, 0, 5, 1, 0, 0, 0, 2, 10, 3, 0]);
 
 // completion: case-insensitive match・挿入は原文ケース保持
 cache.collections = [{ name: "colors", path: "colors.txt", count: 3, kind: "txt" }];

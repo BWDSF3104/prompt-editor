@@ -2,21 +2,27 @@ import * as monaco from "monaco-editor";
 import { open } from "@tauri-apps/plugin-dialog";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import { TOKEN_TYPES, tokenize } from "./tokenizer.ts"; // 決定: R1 は semantic tokens（Monarch 非採用）
-import { foldingRanges, markers } from "./providers.ts";
+import { TOKEN_TYPES } from "./tokenizer.ts"; // 決定: R1 は semantic tokens（Monarch 非採用）
+import { foldingRanges, markers, packedData } from "./providers.ts";
 import { cache, matchNames } from "./wildcards.ts";
 import { callEngine } from "./bridge.ts";
+
+// 0.57 public d.ts に semanticTokenColors なし → rules（custom token name は tokenTypeMap 経由でマッチ）
+monaco.editor.defineTheme("dp", { base: "vs", inherit: true, rules: [
+  { token: "variant", foreground: "0A66C2" },
+  { token: "separator", foreground: "A12626" },
+  { token: "weight", foreground: "2F7F4F" },
+  { token: "wildcard", foreground: "7C4DFF" },
+  { token: "comment", foreground: "6A737D" },
+  { token: "lora", foreground: "B3582F" },
+], colors: {} });
+monaco.editor.setTheme("dp");
 
 monaco.languages.register({ id: "dynamicprompt" });
 monaco.languages.registerDocumentSemanticTokensProvider("dynamicprompt", {
   getLegend: () => ({ tokenTypes: [...TOKEN_TYPES], tokenModifiers: Array.from({ length: 8 }, (_, i) => `depth${i + 1}`) }),
   provideDocumentSemanticTokens(model) {
-    const data: number[] = []; // LSP packed encoding（line/char は 0-based）
-    for (const t of tokenize(model.getValue())) {
-      if (t.type === "text") continue; // 本文は既定色
-      data.push(t.line, t.col, t.length, TOKEN_TYPES.indexOf(t.type), t.depth ? 1 << (t.depth - 1) : 0);
-    }
-    return { data: new Uint32Array(data) };
+    return { data: new Uint32Array(packedData(model.getValue())) };
   },
   releaseDocumentSemanticTokens() {},
 });
@@ -47,6 +53,7 @@ const editor = monaco.editor.create(document.getElementById("editor")!, {
   value: "",
   language: "dynamicprompt",
   automaticLayout: true, // window size 追従
+  'semanticHighlighting.enabled': true, // shortcut: theme 既定 false（StandaloneTheme.semanticHighlighting）、editor option で上書き
 });
 
 // keystroke ごとに full re-tokenize しない（debounce 250ms・1-pass）
@@ -107,14 +114,68 @@ async function refresh() {
   }
 }
 
+const files = new Map<string, { model: monaco.editor.ITextModel; encoding: string }>();
+const tabs = document.getElementById("tabs")!;
+
+function renderTabs() {
+  tabs.innerHTML = "";
+  for (const p of files.keys()) {
+    const wrap = document.createElement("div");
+    wrap.className = "tab";
+    wrap.dataset.active = String(p === currentPath);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(p === currentPath));
+    b.textContent = p.split(/[\\/]/).pop() || p;
+    b.onclick = () => activate(p);
+    const x = document.createElement("button");
+    x.type = "button";
+    x.textContent = "×";
+    x.setAttribute("aria-label", "閉じる");
+    x.onclick = () => {
+      const f = files.get(p)!;
+      f.model.dispose();
+      files.delete(p);
+      if (p === currentPath) {
+        const first = files.keys().next().value;
+        if (first) { activate(first); return; }
+        currentPath = "";
+        status.textContent = "";
+      }
+      renderTabs();
+    };
+    wrap.append(b, x);
+    tabs.appendChild(wrap);
+  }
+}
+
+function activate(path: string) {
+  const f = files.get(path)!;
+  currentPath = path;
+  currentEncoding = f.encoding;
+  editor.setModel(f.model);
+  status.textContent = `encoding: ${f.encoding}`; // R6: 判定値を status に表示
+  renderTabs();
+}
+
+function rememberRecent(p: string) {
+  const recent = JSON.parse(localStorage.getItem("recent") || "[]");
+  recent.splice(recent.indexOf(p), recent.indexOf(p) >= 0 ? 1 : 0); // shortcut: indexOf -1 の splice(−1,0) は no-op
+  recent.unshift(p);
+  recent.length = Math.min(recent.length, 10);
+  localStorage.setItem("recent", JSON.stringify(recent));
+  invoke("push_recent", { path: p }).catch(() => {}); // native menu rebuild
+}
+
 async function openFile(full: string) {
-  invoke("push_recent", { path: full }).catch(() => {}); // browser 確認（mock なし）では catch
+  if (files.has(full)) return activate(full);
   const resp = await call({ command: "read", root: "", file: full });
   if (resp.error) return;
-  currentPath = full;
-  currentEncoding = String(resp.encoding);
-  status.textContent = `encoding: ${currentEncoding}`; // R6: 判定値を status に表示
-  editor.setValue(String(resp.text));
+  const model = monaco.editor.createModel(String(resp.text), "dynamicprompt");
+  files.set(full, { model, encoding: String(resp.encoding) });
+  rememberRecent(full);
+  activate(full);
 }
 
 const handlers: Record<string, () => void> = {
@@ -128,7 +189,7 @@ const handlers: Record<string, () => void> = {
   },
   index: () => refresh(),
   settings: () => {
-    document.getElementById("settingspanel")!.hidden = false;
+    (document.getElementById("settingspanel") as HTMLDialogElement).showModal();
   },
   pick: async () => {
     const d = await open({ directory: true });
@@ -154,6 +215,10 @@ const handlers: Record<string, () => void> = {
 };
 
 $("pick").onclick = () => handlers.pick();
+document.getElementById("close-settings")!.onclick = () => (document.getElementById("settingspanel") as HTMLDialogElement).close();
+// 起動: 保存済み recent を native menu に再投入（Rust menu rebuild）＋ root 保存済みなら自動索引
+JSON.parse(localStorage.getItem("recent") || "[]").forEach((p: string) => invoke("push_recent", { path: p }).catch(() => {}));
+if (settings.root()) refresh();
 // native menu event → handler。未知 id は最近使ったファイルの path（submenu id = path）とみなして開く
 const dispatch = (id: string) => handlers[id] ? handlers[id]() : openFile(id);
 listen("menu", (e) => dispatch(String(e.payload))).catch(() => {});

@@ -1,2 +1,2 @@
 task_file	status	next_action
-docs/ai/tasks/2026-11-10-m2-m4-frontend.md	進行中	theme 実測（{red|blue} __colors__ 入力→span 色確認→ui-theme-20261110.png）→ Drive コピー＋txt → close/残存 0/ゴミ箱 → vite 再起動（本セッション bgp_1c62d85390011wVIZ4wxBtwZLd はセッション終了で stop）→ commit → exe 再ビルド → SAKURA 参考提案リスト提示
+docs/ai/tasks/2026-11-10-m2-m4-frontend.md	進行中	exe 実機スモーク 5 件（semantic token 色・native menu・accelerator・OS dialog・write）→ 完了判定。SAKURA 参考提案リストは 2026-11-11 回答で提示済み

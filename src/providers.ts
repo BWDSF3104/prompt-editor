@@ -1,5 +1,5 @@
 // 構造層のみ（意味層警告は Python 正典に委譲。誤検知除外: 空 option・{0::・$$・lora・エスケープ括弧）
-import { tokenize } from "./tokenizer.ts";
+import { TOKEN_TYPES, tokenize } from "./tokenizer.ts";
 import type { Token } from "./tokenizer.ts";
 
 export interface FoldRange {
@@ -53,4 +53,19 @@ export function markers(text: string, known?: Set<string>): MarkerDef[] {
   }
   for (const t of stack) res.push({ line: t.line, col: t.col, length: t.length, message: "閉じられていない variant", severity: "error" });
   return res;
+}
+
+// LSP packed encoding（line/char は前 token 基準の delta。monaco は delta 解读・absolute だと多 token でずれる）
+export function packedData(text: string): number[] {
+  const data: number[] = [];
+  let pl = 0;
+  let pc = 0;
+  for (const t of tokenize(text)) {
+    if (t.type === "text") continue;
+    const dl = t.line - pl;
+    data.push(dl, dl ? t.col : t.col - pc, t.length, TOKEN_TYPES.indexOf(t.type), t.depth ? 1 << (t.depth - 1) : 0);
+    pl = t.line;
+    pc = t.col;
+  }
+  return data;
 }

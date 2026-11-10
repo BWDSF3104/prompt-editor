@@ -6,25 +6,31 @@
   <link rel="stylesheet" href="/src/styles.css" />
 </head>
 <body>
-  <div id="settingspanel" hidden>
-    <label for="root">wildcards フォルダ</label>
-    <input id="root" />
-    <button id="pick" type="button" title="フォルダ選択">フォルダ選択</button>
-    <label for="seed">seed</label>
-    <input id="seed" type="number" value="999" min="0" />
-    <label for="count">count</label>
-    <input id="count" type="number" value="8" min="1" />
-    <label for="generator">generator</label>
-    <select id="generator"><option value="random">random</option><option value="combinatorial">combinatorial</option></select>
-    <label for="python">pythonPath（空=自動）</label>
-    <input id="python" />
-  </div>
+  <dialog id="settingspanel">
+    <div id="settingsgrid">
+      <label for="root">wildcards フォルダ</label>
+      <input id="root" />
+      <button id="pick" type="button" title="フォルダ選択">フォルダ選択</button>
+      <label for="seed">seed</label>
+      <input id="seed" type="number" value="999" min="0" />
+      <label for="count">count</label>
+      <input id="count" type="number" value="8" min="1" />
+      <label for="generator">generator</label>
+      <select id="generator"><option value="random">random</option><option value="combinatorial">combinatorial</option></select>
+      <label for="python">pythonPath（空=自動）</label>
+      <input id="python" />
+      <button id="close-settings" type="button">閉じる</button>
+    </div>
+  </dialog>
   <div id="main">
     <div id="filelist-col">
       <h2>ファイル（wildcards）</h2>
       <ul id="filelist"></ul>
     </div>
-    <div id="editor"></div>
+    <div id="editor-col">
+      <div id="tabs" role="tablist" aria-label="開いているファイル"></div>
+      <div id="editor"></div>
+    </div>
   </div>
   <p id="status" role="status"></p>
   <pre id="results"></pre>
