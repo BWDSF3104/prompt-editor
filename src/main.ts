@@ -6,9 +6,10 @@ import "monaco-editor/editor/contrib/semanticTokens/browser/documentSemanticToke
 import "monaco-editor/editor/contrib/semanticTokens/browser/viewportSemanticTokens.js";
 import "monaco-editor/editor/contrib/suggest/browser/suggestController.js";
 import "monaco-editor/editor/contrib/find/browser/findController.js";
-import { open } from "@tauri-apps/plugin-dialog";
+import { confirm, open } from "@tauri-apps/plugin-dialog";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { TOKEN_TYPES } from "./tokenizer.ts"; // 決定: R1 は semantic tokens（Monarch 非採用）
 import { foldingRanges, markers, packedData } from "./providers.ts";
 import { cache, matchNames } from "./wildcards.ts";
@@ -63,6 +64,8 @@ const editor = monaco.editor.create(document.getElementById("editor")!, {
 // keystroke ごとに full re-tokenize しない（debounce 250ms・1-pass）
 let timer: number | undefined;
 editor.onDidChangeModelContent(() => {
+  const f = files.get(currentPath);
+  if (f && !f.dirty) { f.dirty = true; renderTabs(); } // SAKURA 系: 未保存フラグ（marker は debounce、flag は即時）
   window.clearTimeout(timer);
   timer = window.setTimeout(() => {
     const model = editor.getModel();
@@ -166,12 +169,12 @@ function renderHistory() {
   }
 }
 
-const files = new Map<string, { model: monaco.editor.ITextModel; encoding: string }>();
+const files = new Map<string, { model: monaco.editor.ITextModel; encoding: string; dirty: boolean }>();
 const tabs = document.getElementById("tabs")!;
 
 function renderTabs() {
   tabs.innerHTML = "";
-  for (const p of files.keys()) {
+  for (const [p, f] of files) {
     const wrap = document.createElement("div");
     wrap.className = "tab";
     wrap.dataset.active = String(p === currentPath);
@@ -179,7 +182,7 @@ function renderTabs() {
     b.type = "button";
     b.setAttribute("role", "tab");
     b.setAttribute("aria-selected", String(p === currentPath));
-    b.textContent = p.split(/[\\/]/).pop() || p;
+    b.textContent = (p.split(/[\\/]/).pop() || p) + (f.dirty ? " (*)" : ""); // SAKURA 系: 未保存は文件名後 (*)
     b.onclick = () => activate(p);
     const x = document.createElement("button");
     x.type = "button";
@@ -232,7 +235,7 @@ async function openFile(full: string) {
   const resp = await call({ command: "read", root: "", file: full });
   if (resp.error) return;
   const model = monaco.editor.createModel(String(resp.text), "dynamicprompt");
-  files.set(full, { model, encoding: String(resp.encoding) });
+  files.set(full, { model, encoding: String(resp.encoding), dirty: false });
   rememberRecent(full);
   activate(full);
 }
@@ -254,7 +257,10 @@ const handlers: Record<string, () => void> = {
   },
   save: async () => {
     if (!currentPath) return;
-    await call({ command: "write", path: currentPath, encoding: currentEncoding, text: editor.getValue() });
+    const resp = await call({ command: "write", path: currentPath, encoding: currentEncoding, text: editor.getValue() });
+    if (resp.error) return;
+    files.get(currentPath)!.dirty = false;
+    renderTabs();
   },
   index: () => refresh(),
   settings: () => {
@@ -305,4 +311,14 @@ renderHistory();
 // native menu event → handler。未知 id は最近使ったファイルの path（submenu id = path）とみなして開く
 const dispatch = (id: string) => handlers[id] ? handlers[id]() : openFile(id);
 listen("menu", (e) => dispatch(String(e.payload))).catch(() => {});
+// 終了警告（SAKURA 系）: handler が preventDefault しないと api が window を destroy する。確認済みの 2 回目は何もせず通過
+let confirmed = false;
+getCurrentWindow().onCloseRequested(async (event) => {
+  if (confirmed || ![...files.values()].some((f) => f.dirty)) return;
+  if (!(await confirm("未保存の変更があります。破棄して終了しますか？", { title: "Prompt Editor", kind: "warning" }))) {
+    event.preventDefault();
+    return;
+  }
+  confirmed = true;
+}).catch(() => {}); // Tauri なし（browser dev）では event transport 未設定
 (window as unknown as Record<string, unknown>).handleMenu = dispatch;
