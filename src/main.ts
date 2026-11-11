@@ -61,6 +61,10 @@ const editor = monaco.editor.create(document.getElementById("editor")!, {
   'semanticHighlighting.enabled': true, // shortcut: theme 既定 false（StandaloneTheme.semanticHighlighting）、editor option で上書き
 });
 
+editor.onDidChangeCursorPosition((e) => {
+  if (currentPath) cursors[currentPath] = { lineNumber: e.position.lineNumber, column: e.position.column };
+});
+
 // keystroke ごとに full re-tokenize しない（debounce 250ms・1-pass）
 let timer: number | undefined;
 editor.onDidChangeModelContent(() => {
@@ -106,7 +110,10 @@ let currentEncoding = "";
 const insert = (text: string) => {
   const m = editor.getModel();
   const sel = editor.getSelection();
-  if (m && sel) m.applyEdits([{ range: sel, text, forceMoveMarkers: true }]);
+  if (!m || !sel) return;
+  const off = m.getOffsetAt(sel.getStartPosition());
+  const sep = off > 0 && /[^\s,]$/.test(m.getValue().slice(0, off)) ? ", " : ""; // Easy Prompt Selector 慣例: カンマ区切り（直前がカンマ・空白なら付けない）
+  m.applyEdits([{ range: sel, text: sep + text, forceMoveMarkers: true }]);
 };
 
 async function call(req: object) {
@@ -119,15 +126,21 @@ async function refresh() {
   const resp = await call({ command: "index", root: settings.root() });
   if (resp.error) return;
   cache.collections = resp.collections as { name: string; path: string; count: number; kind: string }[];
+  renderFiles();
+  await renderLoras();
+}
+
+function renderFiles() {
+  const q = $("filter").value.trim().toLowerCase();
   filelist.innerHTML = "";
   for (const c of cache.collections) {
+    if (q && !c.name.toLowerCase().includes(q)) continue;
     const li = document.createElement("li");
     li.textContent = `${c.name} (${c.count})`;
     li.onclick = () => insert(`__${c.name}__`); // SAKURA 系: 項目クリック＝カーソル位置へ挿入（開く is double-click）
     li.ondblclick = () => openFile(settings.root() ? settings.root() + "/" + c.path : c.path);
     filelist.appendChild(li);
   }
-  await renderLoras();
 }
 
 async function renderLoras() {
@@ -188,8 +201,9 @@ function renderTabs() {
     x.type = "button";
     x.textContent = "×";
     x.setAttribute("aria-label", "閉じる");
-    x.onclick = () => {
+    x.onclick = async () => {
       const f = files.get(p)!;
+      if (f.dirty && !(await confirm("このタブの未保存変更を破棄しますか？"))) return; // 汎用エディタ慣例
       f.model.dispose();
       files.delete(p);
       if (p === currentPath) {
@@ -213,12 +227,14 @@ function activate(path: string) {
   editor.setModel(f.model);
   status.textContent = `encoding: ${f.encoding}`; // R6: 判定値を status に表示
   renderTabs();
+  if (cursors[path]) editor.setPosition(cursors[path]);
   persistOpen();
 }
 
-// shortcut: disk 再現（未保存変更は復元しない・localStorage は path のみ）。内容保全が必要なら task_manager 側で決める
+// shortcut: disk 再現（未保存変更は復元しない・localStorage は path とカーソル位置のみ）。内容保全が必要なら task_manager 側で決める
+const cursors: Record<string, { lineNumber: number; column: number }> = {};
 function persistOpen() {
-  localStorage.setItem("open", JSON.stringify({ active: currentPath, paths: [...files.keys()] }));
+  localStorage.setItem("open", JSON.stringify({ active: currentPath, paths: [...files.keys()], cursors }));
 }
 
 function rememberRecent(p: string) {
@@ -262,6 +278,15 @@ const handlers: Record<string, () => void> = {
     files.get(currentPath)!.dirty = false;
     renderTabs();
   },
+  saveall: async () => {
+    for (const [p, f] of files) {
+      if (!f.dirty) continue;
+      const resp = await call({ command: "write", path: p, encoding: f.encoding, text: f.model.getValue() });
+      if (resp.error) continue; // call が status に出す・失敗時は dirty を残す
+      f.dirty = false;
+    }
+    renderTabs();
+  },
   index: () => refresh(),
   settings: () => {
     (document.getElementById("settingspanel") as HTMLDialogElement).showModal();
@@ -302,9 +327,11 @@ if (settings.root()) refresh();
 else renderLoras();
 renderPresets();
 renderHistory();
+$("filter").addEventListener("input", renderFiles);
 // 起動復元: 前回開いていたファイルを disk から再開（openFile は recent にも反映）
 (async () => {
   const restored = JSON.parse(localStorage.getItem("open") || "null");
+  Object.assign(cursors, restored?.cursors ?? {});
   for (const p of ((restored?.paths as string[]) ?? [])) await openFile(p);
   if (restored?.active && files.has(restored.active)) activate(restored.active);
 })();

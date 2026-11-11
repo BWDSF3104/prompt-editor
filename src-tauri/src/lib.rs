@@ -19,6 +19,7 @@ static RECENT: Mutex<Vec<String>> = Mutex::new(Vec::new()); // 最近使った�
 fn build_menu<M: tauri::Manager<tauri::Wry>>(app: &M) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
     let open = MenuItem::with_id(app, "open", "ファイルを開く…", true, Some("Ctrl+O"))?;
     let save = MenuItem::with_id(app, "save", "保存", true, Some("Ctrl+S"))?; // 挙動は R6（判定 encoding まま）
+    let saveall = MenuItem::with_id(app, "saveall", "すべて保存", true, Some("Ctrl+Shift+S"))?;
     let index = MenuItem::with_id(app, "index", "索引を作る", true, Some("Ctrl+Shift+I"))?;
     let mut recents: Vec<tauri::menu::MenuItem<tauri::Wry>> = Vec::new();
     for p in RECENT.lock().unwrap().iter() {
@@ -30,7 +31,7 @@ fn build_menu<M: tauri::Manager<tauri::Wry>>(app: &M) -> tauri::Result<tauri::me
     }
     let refs: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> = recents.iter().map(|h| h as &dyn tauri::menu::IsMenuItem<tauri::Wry>).collect();
     let recent_menu = Submenu::with_items(app, "最近使ったファイル", true, &refs)?;
-    let file = Submenu::with_items(app, "ファイル", true, &[&open, &save, &index, &recent_menu])?;
+    let file = Submenu::with_items(app, "ファイル", true, &[&open, &save, &saveall, &index, &recent_menu])?;
     let settings_item = MenuItem::with_id(app, "settings", "設定を開く", true, Some("Ctrl+,"))?;
     let settings = Submenu::with_items(app, "設定", true, &[&settings_item])?;
     let run_item = MenuItem::with_id(app, "run", "展開", true, Some("F5"))?;

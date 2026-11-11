@@ -68,7 +68,10 @@ def handle(req: dict) -> dict:
         enc = detect_encoding(data)
         return {"encoding": enc, "text": data.decode(enc)}
     if cmd == "write":
-        Path(req["path"]).write_bytes(req["text"].encode(req["encoding"]))
+        try:
+            Path(req["path"]).write_bytes(req["text"].encode(req["encoding"]))
+        except UnicodeEncodeError as e:
+            return {"error": f"{req['encoding']} で表現できない文字があります: {e.object[e.start]}（{e.start + 1} 文字目）"}
         return {"ok": True}
     if cmd == "expand":
         wm = WildcardManager(root)

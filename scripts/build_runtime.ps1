@@ -10,7 +10,7 @@ New-Item -ItemType Directory -Force $rt | Out-Null
 Expand-Archive -Path $zip -DestinationPath $rt -Force
 
 # _pth は既定で site-packages 無効・cwd 不在 → Lib\site-packages と import site を追記（設計 §4）
-$pth = Get-ChildItem $rt -Filter "python3*._pth" | Select-Object -First 1
+$pth = Get-ChildItem $rt -Force -Filter "python3*._pth" | Select-Object -First 1 # -Force: 解凍時 ._pth が hidden 属性になる（通常 list に出ない）
 [IO.File]::AppendAllText($pth.FullName, "Lib\site-packages`nimport site`n")
 
 foreach ($pkg in "dynamicprompts", "pyparsing", "jinja2", "markupsafe") {

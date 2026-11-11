@@ -44,3 +44,10 @@ def test_read_cp932_roundtrip(tmp_path):
     out = tmp_path / "cp932.prompt"
     worker.handle({"command": "write", "path": str(out), "encoding": r["encoding"], "text": r["text"]})
     assert out.read_bytes() == (FIXTURES / "cp932.prompt").read_bytes()
+
+
+def test_write_unencodable_warns(tmp_path):
+    out = tmp_path / "x.txt"
+    resp = worker.handle({"command": "write", "path": str(out), "encoding": "cp932", "text": "a\u00b3"})
+    assert "表現できない" in resp.get("error", "")
+    assert not out.exists()
