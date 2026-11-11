@@ -328,6 +328,15 @@ else renderLoras();
 renderPresets();
 renderHistory();
 $("filter").addEventListener("input", renderFiles);
+window.addEventListener("keydown", (e) => {
+  if (!e.ctrlKey || e.key !== "Tab") return;
+  const order = [...files.keys()];
+  if (order.length < 2) return;
+  e.preventDefault();
+  const i = order.indexOf(currentPath);
+  const dir = e.shiftKey ? -1 : 1;
+  activate(order[i < 0 ? (dir < 0 ? order.length - 1 : 0) : (i + dir + order.length) % order.length]);
+}, true);
 // 起動復元: 前回開いていたファイルを disk から再開（openFile は recent にも反映）
 (async () => {
   const restored = JSON.parse(localStorage.getItem("open") || "null");
